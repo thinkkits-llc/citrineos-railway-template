@@ -7,3 +7,10 @@ healthcheckPath = "/healthz"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
+
+[variables]
+HASURA_GRAPHQL_DATABASE_URL = "postgres://citrine:citrine@ocpp-db.railway.internal:5432/citrine"
+HASURA_GRAPHQL_ENABLE_CONSOLE = "true"
+HASURA_GRAPHQL_DEV_MODE = "true"
+HASURA_GRAPHQL_ENABLED_LOG_TYPES = "startup, http-log, webhook-log, websocket-log, query-log"
+HASURA_GRAPHQL_ENABLE_TELEMETRY = "false"

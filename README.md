@@ -56,12 +56,13 @@ One-click deployment of the complete [CitrineOS](https://github.com/citrineos/ci
 | **amqp-broker** | `rabbitmq:3-management` (Railway plugin) | 5672, 15672 | No | AMQP message broker |
 | **graphql-engine** | `hasura/graphql-engine:v2.40.3.cli-migrations-v3` | 8080 | Optional | GraphQL API over PostgreSQL |
 | **minio** | `minio/minio` | 9000, 9001 | No | S3-compatible object storage |
-| **redis** | `redis:7-alpine` (Railway plugin) | 6379 | No | Caching and session store |
+| **redis** | `redis:7-alpine` | 6379 | No | Caching and session store |
 | **citrineos-ocpi** | Built from [citrineos-ocpi](https://github.com/citrineos/citrineos-ocpi) | 8085 | No | OCPI protocol bridge |
 | **citrineos-payment** | Built from [citrineos-payment](https://github.com/citrineos/citrineos-payment) | 9010 | **Yes** | Stripe payment processing + driver UI |
 | **operator-ui** | Built from [citrineos-operator-ui](https://github.com/citrineos/citrineos-operator-ui) | 3000 | **Yes** | Operator dashboard |
 | **directus** | `ghcr.io/citrineos/citrineos-directus:latest` | 8055 | Optional | Content management for scan-and-charge |
 | **everest** | `ghcr.io/everest/everest-demo/manager` | 8888 | No | OCPP charge point simulator |
+| **extensions-service** | Custom (Node.js) | 3001 | No | Example extension — RabbitMQ consumer + Core API |
 
 ## Solving the Multi-Port Problem
 
@@ -128,6 +129,7 @@ Every service includes a health check:
 | operator-ui | TCP check on port 3000 |
 | directus | `GET /server/health` |
 | everest | TCP check on port 8888 |
+| extensions-service | `GET /health` |
 
 ## Volumes
 
@@ -169,6 +171,85 @@ Security profiles 0 and 1 (no TLS / basic auth) work out of the box. Profiles 2/
 - [ ] Disable Everest simulator (remove the service or stop it)
 - [ ] Set `CONFIG_CITRINEOS_WIPE_FILE_ON_START=false` on Core
 - [ ] Set `HASURA_GRAPHQL_DEV_MODE=false`
+
+## Extensions Service — Building Custom Integrations
+
+The `extensions-service/` directory contains a minimal working example of a CitrineOS extension that:
+
+1. **Consumes OCPP events** from RabbitMQ (TransactionEvent, StatusNotification, MeterValues, BootNotification)
+2. **Calls CitrineOS Core APIs** to query station data
+3. **Exposes health + metrics endpoints** for Railway monitoring
+
+### How It Works
+
+```
+RabbitMQ (citrineos exchange)
+    │
+    ├── TransactionEvent ──▶ extensions-service ──▶ Core Data API
+    ├── StatusNotification ─▶ extensions-service
+    ├── MeterValues ────────▶ extensions-service
+    └── BootNotification ───▶ extensions-service
+```
+
+CitrineOS Core publishes all OCPP messages to RabbitMQ using the `citrineos` exchange with `headers` routing. The extensions service binds to specific message types via header matching.
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `AMQP_URL` | `amqp://guest:guest@amqp-broker.railway.internal:5672` | RabbitMQ connection string |
+| `AMQP_EXCHANGE` | `citrineos` | Exchange name (must match Core config) |
+| `QUEUE_NAME` | `extensions-service` | Queue name for this service |
+| `CITRINEOS_API_URL` | `http://citrineos-core.railway.internal:8080` | Core API base URL |
+| `PORT` | `3001` | HTTP server port |
+
+### Extending
+
+To add your own business logic:
+
+1. **Add routing keys** — Edit `ROUTING_KEYS` array in `src/index.js` to subscribe to additional OCPP actions
+2. **Add handlers** — Create handler functions for new actions in the switch statement
+3. **Call Core APIs** — Use `callCoreAPI(path)` to interact with CitrineOS:
+   - `GET /data/monitoring/chargingStations` — List all stations
+   - `POST /ocpp/{stationId}/remoteStart` — Remote start a transaction
+   - `GET /data/transactions` — List transactions
+   - See [CitrineOS API docs](https://citrineos.github.io/) for full API reference
+
+4. **Add dependencies** — Install additional packages:
+   ```bash
+   cd extensions-service
+   npm install axios ioredis  # example: HTTP client + Redis
+   ```
+
+### Example Use Cases
+
+- **Fleet alerts**: Notify when a station goes offline (StatusNotification → Faulted)
+- **Billing**: Calculate costs on TransactionEvent.Ended, post to external billing system
+- **Load balancing**: Monitor MeterValues, adjust charging profiles via SetChargingProfile
+- **Access control**: Custom authorization logic before RemoteStart
+- **Analytics**: Stream events to a data warehouse (BigQuery, ClickHouse, etc.)
+
+## Deployment Steps
+
+1. Fork this repository
+2. Go to [Railway Dashboard](https://railway.com/dashboard) → New Project → Deploy from GitHub
+3. For each service directory, create a Railway service pointed at the corresponding subdirectory:
+   - Set **Root Directory** to the service folder (e.g., `citrineos-core`, `nginx`, `redis`)
+   - Railway will detect the `railway.toml` and `Dockerfile` automatically
+4. Add Railway plugins for **PostgreSQL** (PostGIS) and optionally **Redis** if you prefer managed
+5. Set required environment variables (see table above)
+6. Wait for all services to become healthy (~3-5 minutes)
+7. Test: connect a charge point or use the Everest simulator
+
+### Recommended Deploy Order
+
+1. PostgreSQL (plugin) + Redis + RabbitMQ + MinIO (infrastructure, no deps)
+2. CitrineOS Core (depends on Postgres + RabbitMQ + MinIO)
+3. Hasura GraphQL Engine (depends on Core being healthy for migrations)
+4. Directus, OCPI, Payment, Operator UI (depend on Core + Postgres)
+5. Extensions Service (depends on RabbitMQ + Core)
+6. Everest (depends on Core WebSocket port)
+7. nginx (depends on Core being up for proxy)
 
 ## Links
 

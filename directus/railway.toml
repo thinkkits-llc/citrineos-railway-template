@@ -7,3 +7,16 @@ healthcheckPath = "/server/health"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
+
+[variables]
+DB_CLIENT = "pg"
+DB_HOST = "ocpp-db.railway.internal"
+DB_PORT = "5432"
+DB_DATABASE = "citrine"
+DB_USER = "citrine"
+DB_PASSWORD = "citrine"
+WEBSOCKETS_ENABLED = "true"
+ADMIN_EMAIL = "admin@citrineos.com"
+ADMIN_PASSWORD = "CitrineOS!"
+EXTENSIONS_AUTO_RELOAD = "true"
+EXTENSIONS_CACHE_TTL = "1s"

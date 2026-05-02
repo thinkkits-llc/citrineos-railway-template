@@ -3,8 +3,19 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckPath = ""
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
-startCommand = ""
+
+[variables]
+APP_NAME = "all"
+APP_ENV = "docker"
+DB_STRATEGY = "migrate"
+BOOTSTRAP_CITRINEOS_DATABASE_HOST = "ocpp-db.railway.internal"
+BOOTSTRAP_CITRINEOS_CONFIG_FILENAME = "config.json"
+BOOTSTRAP_CITRINEOS_FILE_ACCESS_TYPE = "local"
+BOOTSTRAP_CITRINEOS_FILE_ACCESS_LOCAL_DEFAULT_FILE_PATH = "/data"
+CONFIG_CITRINEOS_WIPE_FILE_ON_START = "true"
+AWS_REGION = "us-east-1"
+AWS_ACCESS_KEY_ID = "minioadmin"
+AWS_SECRET_ACCESS_KEY = "minioadmin"

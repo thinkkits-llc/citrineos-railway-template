@@ -3,11 +3,10 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckPath = "/minio/health/live"
 healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
 
 [variables]
-MINIO_ROOT_USER = "minioadmin"
-MINIO_ROOT_PASSWORD = "minioadmin"
+RABBITMQ_DEFAULT_USER = "guest"
+RABBITMQ_DEFAULT_PASS = "guest"

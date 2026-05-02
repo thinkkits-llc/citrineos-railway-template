@@ -3,13 +3,14 @@ builder = "dockerfile"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-healthcheckTimeout = 120
+healthcheckPath = "/health"
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 5
 
 [variables]
-APP_NAME = "all"
-APP_ENV = "docker"
-DB_HOST = "ocpp-db.railway.internal"
 AMQP_URL = "amqp://guest:guest@amqp-broker.railway.internal:5672"
 AMQP_EXCHANGE = "citrineos"
+QUEUE_NAME = "extensions-service"
+CITRINEOS_API_URL = "http://citrineos-core.railway.internal:8080"
+PORT = "3001"

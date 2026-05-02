@@ -6,3 +6,7 @@ dockerfilePath = "Dockerfile"
 healthcheckTimeout = 180
 restartPolicyType = "on_failure"
 restartPolicyMaxRetries = 3
+
+[variables]
+OCPP_VERSION = "2.0.1"
+CITRINEOS_WS_URL = "ws://citrineos-core.railway.internal:8081/cp001"

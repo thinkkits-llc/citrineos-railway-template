@@ -1,0 +1,7 @@
+FROM postgis/postgis:16-3.5
+
+ENV POSTGRES_DB=citrine
+ENV POSTGRES_USER=citrine
+ENV POSTGRES_PASSWORD=citrine
+
+EXPOSE 5432
